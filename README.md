@@ -260,7 +260,7 @@ from flask import Flask, render_template
 
     ### 리다이렉트와 사용자세션
 
-    ![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/6ebb472b-6898-4b6c-bd17-7fbdd577fbae/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/6ebb472b-6898-4b6c-bd17-7fbdd577fbae/Untitled.png)
+    ![no-rediction](https://github.com/DavidKimDY/Book-Flask-web-develop/blob/main/static/no_redirection.png)
 
     - POST 방식으로 요청하고서 새로고침을 눌렀을때 종종 일어나는 반응이다. 즉, 새로고침은 폼 서브미션을 두 번 하게되는 문제를 일으킨다.
     - 따라서 웹 app이 브라우저에 의해 전송된 마지막 요청으로 POST 요청을 남기지 않는 것이 좋은 습관이다.
