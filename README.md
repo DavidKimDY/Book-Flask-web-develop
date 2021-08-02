@@ -1,12 +1,12 @@
 # Book-Flask-web-develop
 # Flask
 
-# Feature
+# 1. Feature
 
-- 마이크로 프레임워크다.
-- WSGI 서브시스템음 Werkzeung에 템플릿은 jinja2에 의존한다.
+- Flask는 마이크로 프레임워크다.
+- WSGI 서브시스템은 Werkzeung에, 템플릿은 jinja2에 의존한다.
 
-# Application Structure
+# 2. Application Structure
 
 ### Application Instance
 
@@ -134,7 +134,7 @@ def index():
 
     [Flask-Script - Flask-Script 0.4.0 documentation](https://flask-script.readthedocs.io/en/latest/)
 
-# Template
+# 3. Template
 
 - 플라스크 뷰 함수는 완전히 독립된 두 개의 기능이 마치 하나의 기능처럼 보이는데 이는 유지 보수에 어려움을 줄 수 있다.
 - 뷰 함수는 정확히 request에 대한 response를 생성하는 것이다.
@@ -214,7 +214,7 @@ from flask import Flask, render_template
 - 웹 어플리케이션에서 날짜와 시간을 처리하는 것은 사용자가 전 세계에서 다른 시간대를 사용하기 때문에 간단한 문제가 아니다.
 - 서버는 UTC를 사용하고 웹 브라우저는 전송받은 시간 유닛을 자신의 로컬 시간으로 변경하고 렌더링한다.
 
-# Web Form
+# 4. Web Form
 
 - Flask-WTF 확장은 웹 폼을 사용하여 훨씬 멋진 경험을 하도록 도와준다
 
@@ -270,3 +270,28 @@ from flask import Flask, render_template
     - app은 사용자 세션에 데이터를 저장하여 사용자의 데이터를 기억해낸다.
     - 기본적으로 사용자 세션은 클라이언트 측 쿠키에 저장된다. 이는 설정되어 있는 SECRET_KEY로 암호화되어 있다. 쿠키의 콘텐츠가 조작되면 서명이 무효화되고 결국 세션 자체가 무효화된다.
     - 세션을 사용하면 로컬 변수였던 name은 session['name'] 으로 저장되었고 이후 리퀘스트에서도 사용가능하다.
+	     
+# 5. DataBase
+
+### SQL DataBase
+
+- Structured Query Language
+- 관계형 모델이라고 한다.
+- 테이블에 데이터를 저장한다.
+- Column의 수는 테이블마다 고정되어 있다.
+- Row 수는 늘어난다.
+- 기본키(primary key)와 외래키(foreign key)를 설정할 수 있다.
+- 기본키는 해당 행의 식별자이고 외래키는 이를 참조한다.
+
+### NoSQL DataBase
+
+- 테이블 대신 컬랙션(collection)
+- 레코드 대신 도큐먼트(document) 를 사용한다.
+- 역정규화(denormalization)라고 하는 오퍼레이션을 사용하며 데이터 중복을 방지한다.
+
+### ORM
+
+- 객체와 관계형 데이터베이스의 데이터를 자동으로 매핑(연결)해주는 것을 말한다.
+- 객체 지향 프로그래밍은 클래스를 사용하고, 관계형 데이터베이스는 테이블을 사용한다.
+- 객체 모델과 관계형 모델 간에 불일치가 존재한다.
+- ORM을 통해 객체 간의 관계를 바탕으로 SQL을 자동으로 생성하여 불일치를 해결한다.
