@@ -295,3 +295,12 @@ from flask import Flask, render_template
 - 객체 지향 프로그래밍은 클래스를 사용하고, 관계형 데이터베이스는 테이블을 사용한다.
 - 객체 모델과 관계형 모델 간에 불일치가 존재한다.
 - ORM을 통해 객체 간의 관계를 바탕으로 SQL을 자동으로 생성하여 불일치를 해결한다.
+	     
+# E-mail
+
+## Flask-Mail
+
+- Flask-Mail은 SMTP (Simple Mail Tranfer Protocol) 서버와 연결하여 이메일을 서버에 전달함으로 이메일을 발송한다.
+- 다른 설정이 없다면 Flask-Mail은 포트 25번을 통해 **[localhost](http://localhost)** 와 연결한다.
+- 이때는 인증없이 이메일을 발송한다.
+- 외부 SMTP 서버를 연결하는 것이 더 편할 수 있다.
