@@ -303,4 +303,25 @@ from flask import Flask, render_template
 - Flask-Mail은 SMTP (Simple Mail Tranfer Protocol) 서버와 연결하여 이메일을 서버에 전달함으로 이메일을 발송한다.
 - 다른 설정이 없다면 Flask-Mail은 포트 25번을 통해 **[localhost](http://localhost)** 와 연결한다.
 - 이때는 인증없이 이메일을 발송한다.
+- 외부 SMTP 서버를 연결하는 것이 더 편할 수 있다. -> google의 smtp를 이용한다
 - 외부 SMTP 서버를 연결하는 것이 더 편할 수 있다.
+- 다음은 구글의 Gmail 계정을 통해 이메일을 전송하는 방법이다.
+
+    ```python
+    app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') 
+    ```
+
+    - 개인정보는 절대로 스크립트에 입력하지 말고 위와 같이 환경변수로 사용해야 한다.
+    - 환경변수를 설정하는 방법은 다음과 같다
+
+        ```bash
+        export MAIL_USERNAME=구글아이디
+        export MAIL_PASSWORD=비밀번호
+        ```
+
+        > ⚠️  만약 실습에 사용하는 구글아이디가 2-step 인증이라면 `smtplib.SMTPAuthenticationError: (535, b'5.7.8 Username and Password not accepted. Learn more at\n5.7.8 [https://support.google.com/mail/?p=BadCredentials](https://support.google.com/mail/?p=BadCredentials)`  이라는 Error가 뜰 것이다. 그때는 Google Account에 Less secure app access 에서 `Allow Less Security App`  을 `On` 으로 설정해주어야 한다.	    
+
