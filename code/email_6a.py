@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, session, redirect, url_for
 from flask_bootstrap import Bootstrap
-from flask_moment import Moment
+from flask_moment import Moment # 날짜와 시간의 지역화
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
@@ -12,7 +12,7 @@ from flask_mail import Mail, Message
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hard to guess string'
+app.config['SECRET_KEY'] = 'hard to guess string' # CSRF 보호 
 app.config['SQLALCHEMY_DATABASE_URI'] =\
     'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -53,16 +53,25 @@ class User(db.Model):
 
 
 def send_email(to, subject, template, **kwargs):
+    """
+    to : mail을 받는 사람
+    subject : 제목
+    template : template 파일 이름
+    """
     msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject,
-                  sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
-    msg.body = render_template(template + '.txt', **kwargs)
-    msg.html = render_template(template + '.html', **kwargs)
+                  sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to]) 
+
+    # template 이름이 확장자 없이 주어져야 하므로 두개의 템플릿 버전은
+    # 플레인-텍스트 본문과 리치-텍스트 본문으로 사용된다.
+    msg.body = render_template(template + '.txt', **kwargs) # User {{ user.username }} has joined.
+    msg.html = render_template(template + '.html', **kwargs) # User <b>{{ user.username }}</b> has joined.
+
     mail.send(msg)
 
 
 class NameForm(FlaskForm):
-    name = StringField('What is your name?', validators=[DataRequired()])
-    submit = SubmitField('Submit')
+    name = StringField('What is your name?', validators=[DataRequired()]) # message와 입력칸 생성
+    submit = SubmitField('Submit') # Submit 버튼 생성
 
 
 @app.shell_context_processor
