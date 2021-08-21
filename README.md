@@ -325,3 +325,178 @@ from flask import Flask, render_template
 
         > ⚠️  만약 실습에 사용하는 구글아이디가 2-step 인증이라면 `smtplib.SMTPAuthenticationError: (535, b'5.7.8 Username and Password not accepted. Learn more at\n5.7.8 [https://support.google.com/mail/?p=BadCredentials](https://support.google.com/mail/?p=BadCredentials)`  이라는 Error가 뜰 것이다. 그때는 Google Account에 Less secure app access 에서 `Allow Less Security App`  을 `On` 으로 설정해주어야 한다.	    
 
+### Application에서 Email 기능
+
+- 이메일 전송 기능을 함수로 추상화 하는 것을 추천한다.
+- 이 함수는 Jinja2 템플릿으로 이메일 본문을 렌더링한다.
+    - code에서는 이메일 템플릿을 mail directory에 모아두었음을 알 수 있다.
+
+### Code 설명
+
+[Book-Flask-web-develop/email.py at main · DavidKimDY/Book-Flask-web-develop](https://github.com/DavidKimDY/Book-Flask-web-develop/blob/main/code/email.py)
+
+### 비동기 이메일 전송
+
+- 위의 코드를 실행해보면 mail을 보내는 동안 web browser가 멈추는 모습을 볼 수 있다.
+- 리퀘스트 핸들링을 하는 동안 불필요한 지연을 피하기 위해, 이메일 전송 함수는 백그라운드 스레드로 처리한다.
+
+```python
+def send_async_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+def send_email(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject,
+                  sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+```
+
+- 많은 플라스크 확장은 활성화된 어플리케이션과 [리퀘스트 컨텍스트](https://www.notion.so/Flask-d499f6e36cb1414e97abac05f1092e29)가 있다는 가정하에 동작한다.
+- Flask-Mail은 send() 함수에서 [current_app](https://www.notion.so/Flask-d499f6e36cb1414e97abac05f1092e29)을 사용하여 애플리케이션 컨텍스트가 활성화될 것을 요구한다. 하지만 send() 함수가 다른 스레드에서 실행되면 애플리케이션 컨텍스트가 인위적으로 app.app_context()를 생성해야 한다.
+- 대용량 이메일 전송 작업과 같은 경우에는 이메일 전송을 하나의 작업으로 만드는 것이 이메일을 전송할 때마다 새로운 스레드를 시작하는 것보다 더 낫다.
+- 예를 들면 send_async_email() 함수의 실행은 Celery 태스크 큐에 전송하는 것이다.
+
+# 대규모 어플리케이션 구조
+
+- 어플리케이션이 커질수록 하나의 스크립트 소스 파일에서 작업하는 것은 비효율적이다.
+- 디른 프레임워크와 달리 플라스크는 특정 구조를 요구하지 않는다.
+- 따라서 프로젝트 구조를 구성하는 것은 개발자의 몫이다.
+
+## 프로젝트 구조
+
+```python
+flasky/
+├── LICENSE
+├── README.md
+├── app
+│   ├── __init__.py
+│   ├── email.py
+│   ├── main
+│   │   ├── __init__.py
+│   │   ├── errors.py
+│   │   ├── forms.py
+│   │   └── views.py
+│   ├── models.py
+│   ├── static
+│   │   └── favicon.ico
+│   └── templates
+│       ├── 404.html
+│       ├── 500.html
+│       ├── base.html
+│       ├── index.html
+│       └── mail
+│           ├── new_user.html
+│           └── new_user.txt
+├── config.py
+├── flasky.py
+├── migrations
+│   ├── README
+│   ├── alembic.ini
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions
+│       └── 38c4e85512a9_initial_migration.py
+├── requirements.txt
+└── tests
+    ├── __init__.py
+    └── test_basics.py
+```
+
+## 설정 옵션
+
+- 어플리케이션은 종종 여러 설정값이 필요하다.
+- 개발, 테스트, 제품화 과정 중에 서로 다른 데이터베이스를 사용해야 하는 경우가 대표적이다.
+
+```python
+import os
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.googlemail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', '587'))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in \
+        ['true', 'on', '1']
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
+    FLASKY_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
+    FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    @staticmethod
+    def init_app(app):
+        pass
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+        'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
+        'sqlite://'
+
+class ProductionConfig(Config):
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+
+    'default': DevelopmentConfig
+}
+```
+
+- Config class는  모든 설정에 사용되는 공통값들을 포함하고 있다.
+- 좀 더 호환성있고 안정한 설정을 하려면 환경 변수에서 옵션으로 임포트해야 한다.
+    - 예를 들면 `SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'`
+- `SQLALCHEMY_DATABASE_URI` 변수는 각 설정에 따라 다른 값으로 설정되어 있다. 서로 다른 DB 환경에서 동작할 수 있게 해준다.
+- `init_app()` 클래스 메소드는 설정에 따른 초기화 작업을 수행해준다.
+
+## 어플리케이션 패키지
+
+```bash
+app
+├── __init__.py
+├── email.py
+├── main
+│   ├── __init__.py
+│   ├── errors.py
+│   ├── forms.py
+│   └── views.py
+├── models.py
+├── static
+│   └── favicon.ico
+└── templates
+    ├── 404.html
+    ├── 500.html
+    ├── base.html
+    ├── index.html
+    └── mail
+        ├── new_user.html
+        └── new_user.txt
+```
+
+- app 패키지에는 어플리케이션의 코드, 템플릿, 정적파일, 데이터베이스 모델, 이메일 작업 코드 등이 존재한다.
+
+### 블루프린트
+
+[블루프린트를 가진 모듈화된 어플리케이션 - Flask 0.11-dev documentation](https://flask-docs-kr.readthedocs.io/ko/latest/blueprints.html)
+
+- 대규모 어플리케이션 구조를 지원하기 위한 Flask의 기능
+- 블루프린트는 대형 어플리케이션이 동작하는 방식을 단순화한다
+- 블루프린트의 기본 개념은 어플리케이션에 블루프린트이 등록될 때 실행할 동작을 기록한다는 것이다.
+- 플라스크는 요청을 보내고 하나의 끝점에서 다른 곳으로 URL을 생성할 때 뷰 함수와 블루프린트의 연관을 맺는다.
+
+### 어플리케이션 팩토리
+
+- 일반적인 패턴은 청사진을 임포트할 때 어플리케이션 객체를 생성하는 것이다.
+- 하지만 이 객체의 생성을 함수로 옮긴다면, 나중에 이 객체에 대한 복수 개의 인스턴스를 생성할 수 있다.
