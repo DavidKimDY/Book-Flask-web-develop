@@ -500,3 +500,94 @@ app
 
 - 일반적인 패턴은 청사진을 임포트할 때 어플리케이션 객체를 생성하는 것이다.
 - 하지만 이 객체의 생성을 함수로 옮긴다면, 나중에 이 객체에 대한 복수 개의 인스턴스를 생성할 수 있다.
+	     
+# 사용자 인증
+
+## 패스워드 보안
+
+- 패스워드를 저장할 때는 해싱(hashing)을 사용한다
+- 즉, 패스워드를 있는 그래도 DB에 저장하는 것이아닌 해싱을 통해 변환된 문자열을 저장하는 방법이다.
+- 예를 들어보자.
+
+    Password : "applebanana" → [Hash function] → DB : "AE21-00FF-E112"
+
+    [로그인 과정]
+
+    1. 사용자가 "applebanana"로 password를 입력
+    2. hash function을 통해서 변환된 값을 획득
+    3. 변환된 값을 가지고 DB에 저장된 값과 비교
+
+    [보안성]
+
+    - "applebanana" → hash →  "AE21-00FF-E112"  (Possible)
+    - "AE21-00FF-E112" → hash → "applebanana"   (Impossible)
+    - 즉, 변환된 값을 가지고 변환되기 전 값을 찾는 것은 불가능하다.
+
+### Werzeung [월-적]
+
+- Werkzeug [월적] 은 WSGI web application library이다.
+- 월적의 보안 모듈을 사용하면 보안 패스워드 해싱을 편하게 구현할 수 있다.
+
+    `generate_password_hash(password, method=pbkdf2:sha1, salt_lenth=8)`
+
+    → 이 함수는 plain-text인 password를 받아서 password hash를 return한다. 
+
+    → method, length는 그대로 두고 사용해도 된다.
+
+    `check_password_hash(hash, password)`
+
+    → DB에서 추출한 password hash 와 사용자가 입력한 password를 비교한다. 
+
+    → True가 반환되면 패스워드가 일치한다는 뜻이다.
+
+### 인증 블루프린트 생성
+
+- 사용자 인증과 관련된 라우트는 auth 블루프린트에 추가할 수 있다.
+- 애플리케이션 기능의 다른 집합을 위해 다른 블루프린트를 사용하는 것은 코드를 구조적으로 보기 좋게 관리하는 방법이다.
+1. 같은 이름의 패키지에서 호스트한다.
+
+    `app/auth/__init__.py` 에서 auth 블루프린트를 생성한다
+
+    ```python
+    from flask import Blueprint
+
+    auth = Blueprint('auth', __name__)
+
+    from . import views
+    ```
+
+2. [views.py](http://views.py) 에서 auth를 호출한다.
+
+    `app/auth/views.py`
+
+    ```python
+    from flask import render_template
+    from . import auth
+
+    @auth.route('/login')
+    def login():
+    	return render_template('auth/login.html')
+    ```
+
+    언뜻보면 순환 구조처럼 보이지만 `__init__.py` 는 `auth` 패키지가 임포트 될때 한번 실행된다.
+
+    그리고 `[views.py](http://views.py)` 가 실행되면서 `__init__.py` 에서 선언한 auth blueprint를 불러와서 사용한다.
+
+    `render_template('auth/login.html')` 에서 괄호 안의 경로는 `app/templates/auth/login.html` 이다. `render_tamplate()` 함수는 먼저 어플리케이션용으로 설정된 템플릿 풀더를 우선 검색한다.
+
+3. 블루프린트를 부착한다.
+
+    `app/__inti__.py`
+
+    ```python
+    def create_app(config_name):
+    	# ...
+    	from .auth import auth as auth_blueprint
+    	app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+    	return app
+    ```
+
+- `url_prefix` 인수는 옵션이다.
+- `url_prefix` 인수 옵션을 사용하면 해당 블루프린트에 정의된 모든 라우트는 주어진 접두어를 사용하여 등록된다
+- 따라서 `/login` 라우트는 `/auth/login` 로 등록되었고 [http://localhost:500/auth/login](http://localhost:500/auth/login) 에서 접속이 가능해 진다.
